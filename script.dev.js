@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Анализ клиента
+// @name         Анализ клиента (DEV)
 // @namespace    http://tampermonkey.net/
 // @version      4.3
 // @description  Анализ
@@ -8,8 +8,8 @@
 // @icon         https://i.pinimg.com/736x/78/53/ad/7853ade6dd49b8caba4d1037e7341323.jpg
 // @connect      companium.ru
 // @grant        GM_xmlhttpRequest
-// @updateURL    https://raw.githubusercontent.com/VladNevermore/analysis/main/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/VladNevermore/analysis/main/script.user.js
+// @updateURL    https://raw.githubusercontent.com/VladNevermore/analysis/main/script.dev.js
+// @downloadURL  https://raw.githubusercontent.com/VladNevermore/analysis/main/script.dev.js
 // ==/UserScript==
 
 (function() {
