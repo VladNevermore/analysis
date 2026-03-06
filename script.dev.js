@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Анализ клиента
 // @namespace    http://tampermonkey.net/
-// @version      4.1
-// @description  анализ
+// @version      4.3
+// @description  Анализ
 // @match        https://crm.finleo.ru/crm/orders/*
 // @author       VladNevermore
 // @icon         https://i.pinimg.com/736x/78/53/ad/7853ade6dd49b8caba4d1037e7341323.jpg
 // @connect      companium.ru
 // @grant        GM_xmlhttpRequest
-// @updateURL    https://raw.githubusercontent.com/VladNevermore/analysis/main/script.dev.js
-// @downloadURL  https://raw.githubusercontent.com/VladNevermore/analysis/main/script.dev.js
+// @updateURL    https://raw.githubusercontent.com/VladNevermore/analysis/main/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/VladNevermore/analysis/main/script.user.js
 // ==/UserScript==
 
 (function() {
@@ -35,7 +35,7 @@
         });
     }
 
-    const interval = setInterval(() => {
+    setInterval(() => {
         const spans = document.querySelectorAll('span');
         let innElement = null;
         let innText = '';
@@ -48,11 +48,16 @@
             }
         }
 
-        if (innElement && !document.getElementById('tm-check-companium-btn') && innText.length >= 10) {
-            createCheckButton(innElement, innText);
-            clearInterval(interval);
+        if (innElement && innText.length >= 10) {
+            if (!innElement.parentNode.querySelector('#tm-check-companium-btn')) {
+                const oldBtn = document.getElementById('tm-check-companium-btn');
+                if (oldBtn) {
+                    oldBtn.remove();
+                }
+                createCheckButton(innElement, innText);
+            }
         }
-    }, 1500);
+    }, 1000);
 
     function createCheckButton(element, inn) {
         const btn = document.createElement('button');
@@ -90,7 +95,13 @@
                 btn.textContent = '❌ Ошибка';
                 btn.style.background = '#d32f2f';
                 console.error("Ошибка парсинга Companium:", error);
-                alert("Не удалось загрузить данные: " + error.message);
+                
+                // Проверяем ошибку на 429 (Too Many Requests) или 403 (Forbidden/Captcha)
+                if (error.message.includes('429') || error.message.includes('403')) {
+                    showErrorWidget(inn);
+                } else {
+                    alert("Не удалось загрузить данные: " + error.message);
+                }
             } finally {
                 btn.disabled = false;
             }
@@ -289,6 +300,74 @@
         return result;
     }
 
+    function showErrorWidget(inn) {
+        const oldPanel = document.getElementById('tm-companium-widget');
+        if (oldPanel) oldPanel.remove();
+
+        const captchaUrl = `https://companium.ru/search?query=${inn}`;
+
+        const errorHTML = `
+            <div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; text-align: center; padding: 10px 0;">
+                <h3 style="margin: 0 0 10px 0; color: #d32f2f; font-size: 16px;">
+                    🤖 Требуется проверка на робота
+                </h3>
+                <p style="margin-bottom: 15px; color: #333; font-size: 13px;">
+                    Сайт Companium временно заблокировал запросы из-за высокой активности (Ошибка 429). 
+                </p>
+                <a href="${captchaUrl}" target="_blank" style="display: inline-block; padding: 10px 16px; background: #d32f2f; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                    👉 Перейти на сайт и пройти капчу ↗
+                </a>
+                <p style="margin-top: 15px; font-size: 11px; color: #757575;">
+                    После прохождения капчи просто закройте эту панель и нажмите кнопку «Анализ» еще раз.
+                </p>
+            </div>
+        `;
+
+        createPanel(errorHTML);
+    }
+
+    function createPanel(innerHTML) {
+        const panel = document.createElement('div');
+        panel.id = 'tm-companium-widget';
+        panel.innerHTML = innerHTML;
+        panel.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 360px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #cfd8dc;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 999999;
+            color: #333;
+            transition: all 0.3s ease-in-out;
+        `;
+
+        const closeBtn = document.createElement('span');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            cursor: pointer;
+            color: #9e9e9e;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1;
+        `;
+        closeBtn.onmouseover = () => closeBtn.style.color = '#333';
+        closeBtn.onmouseout = () => closeBtn.style.color = '#9e9e9e';
+        closeBtn.onclick = () => panel.remove();
+
+        panel.appendChild(closeBtn);
+        document.body.appendChild(panel);
+        return panel;
+    }
+
     function showWidget(data, inn) {
         const oldPanel = document.getElementById('tm-companium-widget');
         if (oldPanel) oldPanel.remove();
@@ -355,44 +434,7 @@
             </div>
         `;
 
-        const panel = document.createElement('div');
-        panel.id = 'tm-companium-widget';
-        panel.innerHTML = summaryHTML;
-        panel.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 360px;
-            max-height: 85vh;
-            overflow-y: auto;
-            background: #ffffff;
-            border: 1px solid #cfd8dc;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            z-index: 999999;
-            color: #333;
-            transition: all 0.3s ease-in-out;
-        `;
-
-        const closeBtn = document.createElement('span');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.style.cssText = `
-            position: absolute;
-            top: 8px;
-            right: 12px;
-            cursor: pointer;
-            color: #9e9e9e;
-            font-size: 20px;
-            font-weight: bold;
-            line-height: 1;
-        `;
-        closeBtn.onmouseover = () => closeBtn.style.color = '#333';
-        closeBtn.onmouseout = () => closeBtn.style.color = '#9e9e9e';
-        closeBtn.onclick = () => panel.remove();
-
-        panel.appendChild(closeBtn);
-        document.body.appendChild(panel);
+        createPanel(summaryHTML);
 
         const copyBtn = document.getElementById('tm-copy-data-btn');
         copyBtn.onclick = () => {
