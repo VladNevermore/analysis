@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Анализ клиента
 // @namespace    http://tampermonkey.net/
-// @version      4.1
-// @description  анализ
+// @version      4.4
+// @description  Анализ
 // @match        https://crm.finleo.ru/crm/orders/*
 // @author       VladNevermore
 // @icon         https://i.pinimg.com/736x/78/53/ad/7853ade6dd49b8caba4d1037e7341323.jpg
